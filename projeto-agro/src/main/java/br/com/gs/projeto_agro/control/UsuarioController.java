@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +25,7 @@ import br.com.gs.projeto_agro.model.Usuario;
 import br.com.gs.projeto_agro.repository.UsuarioRepository;
 import br.com.gs.projeto_agro.service.UsuarioCachingService;
 import br.com.gs.projeto_agro.service.UsuarioPaginacaoService;
+import br.com.gs.projeto_agro.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 
@@ -41,12 +43,26 @@ public class UsuarioController {
 	@Autowired 
 	private UsuarioCachingService cachingU;
 	
+	 @Autowired
+	 private UsuarioService service;
+	   
+	 @Autowired
+	 private PasswordEncoder passwordEncoder;
+
+	
 	@Operation(
             summary = "Listar Usuario paginados",
             description = "Retorna Usuario em formato paginado com base em page e size",
             tags = "Retorno de informações do Usuario"
         )
-@GetMapping("/paginados")
+
+	
+	@PostMapping("/cadastrar")
+    public Usuario cadastrar(@RequestBody Usuario usuario) {
+        return service.salvar(usuario);
+    }
+	
+	@GetMapping("/paginados")
 public ResponseEntity<Page<UsuarioDTO>> paginar	(
 		@RequestParam(value = "page", defaultValue = "0") Integer page,
 			
@@ -124,6 +140,8 @@ public Usuario retornarUsuarioPorEmail(@RequestParam String email) {
 @PostMapping(value="/novo")
 	public Usuario inserirUsuario(@RequestBody @Valid Usuario usuario) {
 		
+	
+		usuario.setSenha(passwordEncoder.encode(usuario.getSenha()));
 		repoU.save(usuario);
 		cachingU.removerCache();
 		
@@ -169,6 +187,9 @@ public Usuario retornarUsuarioPorEmail(@RequestParam String email) {
 			
 			Usuario usuarioBanco = op.get();
 			usuarioBanco.transferirUsuario(usuario);
+			  if (usuario.getSenha() != null && !usuario.getSenha().isBlank()) {
+	                usuarioBanco.setSenha(passwordEncoder.encode(usuario.getSenha()));
+	            }
 			repoU.save(usuarioBanco);
 			cachingU.removerCache();
 			return usuarioBanco;
