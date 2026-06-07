@@ -1,0 +1,16 @@
+package br.com.gs.projeto_agro.repository;
+
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import br.com.gs.projeto_agro.model.Cultura;
+
+public interface CulturaRepository extends JpaRepository<Cultura,Integer> {
+
+
+	List<Cultura> findByNomeContainingIgnoreCase(String nome);
+
+ 
+	
+}
