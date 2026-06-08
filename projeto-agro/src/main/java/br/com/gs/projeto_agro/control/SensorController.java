@@ -152,24 +152,43 @@ public class SensorController {
             tags = "Atualização dos dados do Sensor"
         )
 	@PutMapping(value="atualizar/{id}")
-		public Sensor atualizarSensor(@PathVariable Integer id,@RequestBody @Valid Sensor sensor) {
-			
-			Optional<Sensor> op = repoS.findById(id);
-			
-			if(op.isPresent()) {
-				
-				Sensor sensorBanco = op.get();
-				sensorBanco.transferirSensor(sensor);
-				repoS.save(sensorBanco);
-				cachingS.removerCache();
-				return sensorBanco;
-			}else {
-				throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-			}
-			
-		}
-		
-	}
+	public ResponseEntity<?> atualizarSensor(
+        @PathVariable Integer id,
+        @RequestBody @Valid Sensor sensor) {
+
+    try {
+
+        Optional<Sensor> op = repoS.findById(id);
+
+        if(op.isPresent()) {
+
+            Sensor sensorBanco = op.get();
+
+            sensorBanco.transferirSensor(sensor);
+
+            repoS.save(sensorBanco);
+
+            cachingS.removerCache();
+
+            return ResponseEntity.ok(sensorBanco);
+
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body("Sensor não encontrado");
+
+    } catch (Exception e) {
+
+        e.printStackTrace();
+
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(e.getMessage());
+    }
+}
+
+}
 
 
 
