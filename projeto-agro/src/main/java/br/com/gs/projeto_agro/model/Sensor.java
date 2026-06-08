@@ -12,6 +12,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.persistence.CascadeType;
 
 @Entity
 @Table(name="SENSOR")
@@ -30,8 +31,12 @@ public class Sensor {
     @ManyToOne
     @JoinColumn(name = "ID_LOCAL")
     private Local local;
-    @OneToMany(mappedBy = "sensor")
-    private List<Leitura> leituras;
+	@OneToMany(
+    mappedBy = "sensor",
+    cascade = CascadeType.ALL,
+    orphanRemoval = true
+)
+private List<Leitura> leituras;
 	
     public Sensor() {
 		
