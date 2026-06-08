@@ -26,6 +26,7 @@ import br.com.gs.projeto_agro.model.Sensor;
 import br.com.gs.projeto_agro.repository.SensorRepository;
 import br.com.gs.projeto_agro.service.SensorCachingService;
 import br.com.gs.projeto_agro.service.SensorPaginacaoService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 
 
@@ -42,6 +43,12 @@ public class SensorController {
 	@Autowired
 	private SensorCachingService cachingS ;
 	
+	
+	@Operation(
+            summary = "Listar Sensor paginados",
+            description = "Retorna Sensor em formato paginado com base em page e size",
+            tags = "Retorno de informações do Sensor"
+        )
 	@GetMapping("/paginados")
 	public ResponseEntity<Page<SensorDTO>> paginar	(
 			@RequestParam(value = "page", defaultValue = "0") Integer page,
@@ -55,21 +62,39 @@ public class SensorController {
 			return ResponseEntity.ok(paginados);
 				 
 				 }
-	
+	@Operation(
+            summary = "Buscar Sensor por substring",
+            description = "Busca Sensor filtrando por parte do nome",
+            tags = "Retorno de informações do Sensor"
+        )
 	@GetMapping("/substring")
     public List<Sensor> retornarSensorPorSubstring(@RequestParam String tipo) {
         return cachingS.findByTipo(tipo);
     }
+	
+	@Operation(
+            summary = "Buscar Sensor por Status",
+            description = "Retorna lista de Sensores filtrados pelo Status",
+            tags = "Retorno de informações do Sensor"
+        )
 	@GetMapping("/status")
     public List<Sensor> retornarSensorPorStatus(@RequestParam String status) {
         return cachingS.findByStatus(status);
     }
-	
+	@Operation(
+            summary = "Listar todos os Sensores (cache)",
+            description = "Retorna todos os Sensores utilizando cache para performance",
+            tags = "Retorno de informações do Sensor"
+        )
 	@GetMapping(value="/todos")
 	public List<Sensor>retornarTodosSensores(){
 		return cachingS.findAll();
 	}
-
+	@Operation(
+            summary = "Buscar Sensor por ID",
+            description = "Retorna um Sensor específico pelo ID",
+            tags = "Retorno de informações do Sensor"
+        )
 	@GetMapping(value="/{id}")
 		public Sensor retornarSensorPorId(@PathVariable @Valid Integer id) {
 			
@@ -82,6 +107,11 @@ public class SensorController {
 			}
 			
 		}
+	@Operation(
+            summary = "Criar novo Sensor",
+            description = "Insere um novo Sensor no banco e limpa cache",
+            tags = "Inserção de informações do Sensor"
+        )
 	@PostMapping(value="/novo")
 		public Sensor inserirSensor(@RequestBody @Valid Sensor sensor) {
 			
@@ -90,7 +120,12 @@ public class SensorController {
 			
 			return sensor;
 		}
-
+	
+	@Operation(
+            summary = "Remover Sensor",
+            description = "Remove um Sensor pelo ID e limpa cache",
+            tags = "Remoção de informações do Sensor"
+        )
 	@DeleteMapping(value="remover/{id}")
 		public Sensor deletarSensor(@PathVariable @Valid Integer id) {
 			
@@ -111,6 +146,11 @@ public class SensorController {
 			
 		}
 
+	@Operation(
+            summary = "Atualizar Sensor",
+            description = "Atualiza dados de um Sensor existente",
+            tags = "Atualização dos dados do Sensor"
+        )
 	@PutMapping(value="atualizar/{id}")
 		public Sensor atualizarSensor(@PathVariable Integer id,@RequestBody @Valid Sensor sensor) {
 			

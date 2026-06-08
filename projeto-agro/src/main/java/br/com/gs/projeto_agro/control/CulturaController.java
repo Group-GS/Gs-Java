@@ -24,6 +24,7 @@ import br.com.gs.projeto_agro.model.Cultura;
 import br.com.gs.projeto_agro.repository.CulturaRepository;
 import br.com.gs.projeto_agro.service.CulturaCachingService;
 import br.com.gs.projeto_agro.service.CulturaPaginacaoService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 
 @RestController
@@ -39,6 +40,12 @@ public class CulturaController {
 	@Autowired
 	private CulturaCachingService cachingC;
 	
+	
+	@Operation(
+            summary = "Listar Cultura paginados",
+            description = "Retorna Cultura em formato paginado com base em page e size",
+            tags = "Retorno de informações da Cultura"
+        )
 @GetMapping("/paginados")
 	public ResponseEntity<Page<CulturaDTO>> paginar	(
 			@RequestParam(value = "page", defaultValue = "0") Integer page,
@@ -52,18 +59,31 @@ public class CulturaController {
 			return ResponseEntity.ok(paginados);
 				 
 				 }
+	@Operation(
+            summary = "Buscar Cultura por substring",
+            description = "Busca Cultura filtrando por parte do nome",
+            tags = "Retorno de informações da Cultura"
+        )
 
  @GetMapping("/substring")
     public List<Cultura> retornarCulturaPorSubstring(@RequestParam String substring) {
         return cachingC.findByNome(substring);
     }
 	
-	
+	@Operation(
+            summary = "Listar todos as Culturas (cache)",
+            description = "Retorna todas as Culturas utilizando cache para performance",
+            tags = "Retorno de informações da Cultura"
+        )
 @GetMapping(value="/todos")
 	public List<Cultura>retornarTodasCulturas(){
 		return cachingC.findAll();
 	}
-
+	@Operation(
+            summary = "Buscar Cultura por ID",
+            description = "Retorna uma Cultura específica pelo ID",
+            tags = "Retorno de informações da Cultura"
+        )
 @GetMapping(value="/{id}")
 	public Cultura retornarCulturaPorId(@PathVariable @Valid Integer id) {
 		
@@ -76,6 +96,11 @@ public class CulturaController {
 		}
 		
 	}
+	@Operation(
+            summary = "Criar nova Cultura",
+            description = "Insere uma Cultura  no banco e limpa cache",
+            tags = "Inserção de informações da Cultura"
+        )
 @PostMapping(value="/novo")
 	public Cultura inserirCultura(@RequestBody @Valid Cultura cultura ) {
 		
@@ -84,7 +109,11 @@ public class CulturaController {
 		
 		return cultura;
 	}
-
+	@Operation(
+            summary = "Remover Cultura",
+            description = "Remove uma Cultura pelo ID e limpa cache",
+            tags = "Remoção de informações da Cultura"
+        )
 @DeleteMapping(value="remover/{id}")
 	public Cultura deletarCultura(@PathVariable @Valid Integer id) {
 		
@@ -103,7 +132,11 @@ public class CulturaController {
 		}
 		
 	}
-
+	@Operation(
+            summary = "Atualizar Cultura",
+            description = "Atualiza dados de uma Cultura existente",
+            tags = "Atualização dos dados da Cultura"
+        )
 @PutMapping(value="atualizar/{id}")
 	public Cultura atualizarCultura(@PathVariable Integer id,@RequestBody @Valid Cultura cultura) {
 		

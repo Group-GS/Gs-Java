@@ -51,17 +51,20 @@ public class UsuarioController {
 
 	
 	@Operation(
-            summary = "Listar Usuario paginados",
-            description = "Retorna Usuario em formato paginado com base em page e size",
+            summary = "Cadastrar Usuario ",
+            description = "Cadastra um Usuario retornando sua senha em formato de hash",
             tags = "Retorno de informações do Usuario"
         )
-
-	
 	@PostMapping("/cadastrar")
     public Usuario cadastrar(@RequestBody Usuario usuario) {
         return service.salvar(usuario);
     }
-	
+
+	@Operation(
+            summary = "Listar Usuario paginados",
+            description = "Retorna Usuario em formato paginado com base em page e size",
+            tags = "Retorno de informações do Usuario"
+        )
 	@GetMapping("/paginados")
 public ResponseEntity<Page<UsuarioDTO>> paginar	(
 		@RequestParam(value = "page", defaultValue = "0") Integer page,

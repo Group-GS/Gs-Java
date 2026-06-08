@@ -24,6 +24,7 @@ import br.com.gs.projeto_agro.model.Local;
 import br.com.gs.projeto_agro.repository.LocalRepository;
 import br.com.gs.projeto_agro.service.LocalCachingService;
 import br.com.gs.projeto_agro.service.LocalPaginacaoService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 
 @RestController
@@ -39,6 +40,12 @@ public class LocalController {
 	@Autowired
 	private LocalCachingService cachingL;
 
+	
+	@Operation(
+            summary = "Listar Local paginados",
+            description = "Retorna Local em formato paginado com base em page e size",
+            tags = "Retorno de informações do Local"
+        )
 @GetMapping("/paginados")
 	public ResponseEntity<Page<LocalDTO>> paginar	(
 			@RequestParam(value = "page", defaultValue = "0") Integer page,
@@ -52,21 +59,38 @@ public class LocalController {
 			return ResponseEntity.ok(paginados);
 				 
 				 }
+	@Operation(
+            summary = "Buscar Local por substring",
+            description = "Busca Local filtrando por parte do nome",
+            tags = "Retorno de informações do Local"
+        )
 @GetMapping("/substring")
-public List<Local> substring(@RequestParam String substring) {
+public List<Local> retornarLocalPorSubstring(@RequestParam String substring) {
     return cachingL.findByNome(substring);
 }
-	
-@GetMapping("/local")
+	@Operation(
+            summary = "Buscar Local por Bioma",
+            description = "Retorna lista de Local filtrados pelo Bioma",
+            tags = "Retorno de informações do Local"
+        )
+@GetMapping("/bioma")
 public List<Local> retornarSensorPorBioma(@RequestParam Integer idBioma) {
     return cachingL.findByBioma(idBioma);
 }
-	
+	@Operation(
+            summary = "Listar todos os Locais (cache)",
+            description = "Retorna todos os Locais utilizando cache para performance",
+            tags = "Retorno de informações do Local"
+        )
 @GetMapping(value="/todos")
 	public List<Local>retornarTodosLocais(){
 		return cachingL.findAll();
 	}
-
+	@Operation(
+            summary = "Buscar Local por ID",
+            description = "Retorna um Local específico pelo ID",
+            tags = "Retorno de informações do Local"
+        )
 @GetMapping(value="/{id}")
 	public Local retornarLocalPorId(@PathVariable @Valid Integer id) {
 		
@@ -79,6 +103,11 @@ public List<Local> retornarSensorPorBioma(@RequestParam Integer idBioma) {
 		}
 		
 	}
+	@Operation(
+            summary = "Criar novo Local",
+            description = "Insere um novo Local no banco e limpa cache",
+            tags = "Inserção de informações do Local"
+        )
 @PostMapping(value="/novo")
 	public Local inserirLocal(@RequestBody @Valid Local local ) {
 		
@@ -87,7 +116,11 @@ public List<Local> retornarSensorPorBioma(@RequestParam Integer idBioma) {
 		
 		return local;
 	}
-
+	@Operation(
+            summary = "Remover Local",
+            description = "Remove um Local pelo ID e limpa cache",
+            tags = "Remoção de informações do Local"
+        )
 @DeleteMapping(value="remover/{id}")
 	public Local deletarLocal(@PathVariable @Valid Integer id) {
 		
@@ -106,7 +139,11 @@ public List<Local> retornarSensorPorBioma(@RequestParam Integer idBioma) {
 		}
 		
 	}
-
+	@Operation(
+            summary = "Atualizar Local",
+            description = "Atualiza dados de um Local existente",
+            tags = "Atualização dos dados do Local"
+        )
 @PutMapping(value="atualizar/{id}")
 	public Local atualizarLocal(@PathVariable Integer id,@RequestBody @Valid Local local ) {
 		

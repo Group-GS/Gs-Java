@@ -24,6 +24,7 @@ import br.com.gs.projeto_agro.model.Cultivo;
 import br.com.gs.projeto_agro.repository.CultivoRepository;
 import br.com.gs.projeto_agro.service.CultivoCachingService;
 import br.com.gs.projeto_agro.service.CultivoPaginacaoService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 
 @RestController
@@ -39,6 +40,11 @@ public class CultivoController {
 	@Autowired
 	private CultivoCachingService cachingC;
 
+	@Operation(
+            summary = "Listar Cultivo paginados",
+            description = "Retorna Cultivo em formato paginado com base em page e size",
+            tags = "Retorno de informações do Cultivo"
+        )
 @GetMapping("/paginados")
 	public ResponseEntity<Page<CultivoDTO>> paginar	(
 			@RequestParam(value = "page", defaultValue = "0") Integer page,
@@ -53,25 +59,48 @@ public class CultivoController {
 				 
 				 }
 
-
+	@Operation(
+            summary = "Buscar Cultura por substring",
+            description = "Busca Cultura filtrando por parte do nome",
+            tags = "Retorno de informações do Cultivo"
+        )
 @GetMapping("/substring")
 	    public List<Cultivo> retornarCultivoPorStatus(@RequestParam String substring) {
 	        return cachingC.findByStatusSubstring(substring);
 	    }
+	@Operation(
+            summary = "Buscar Cultivo por Local",
+            description = "Retorna lista de Cultivo filtrados pelo Local",
+            tags = "Retorno de informações do Cultivo"
+        )
 @GetMapping("/por_local")
 	    public List<Cultivo> retornarCultivoPorLocal(@RequestParam Integer localId) {
 	        return cachingC.findByLocal(localId);
 	    }
+	@Operation(
+            summary = "Buscar Cultivo por Cultura",
+            description = "Retorna lista de Cultivo filtrados pela Cultura",
+            tags = "Retorno de informações do Cultivo"
+        )
 @GetMapping("/por_cultura")
 	    public List<Cultivo> retornarCultivoPorCultura(@RequestParam Integer culturaId) {
 	        return cachingC.findByCultura(culturaId);
 	    }
-	
+	@Operation(
+            summary = "Listar todos os Cultivos (cache)",
+            description = "Retorna todos os Cultivos utilizando cache para performance",
+            tags = "Retorno de informações do Cultivo"
+        )
 @GetMapping(value="/todos")
 	public List<Cultivo>retornarTodos(){
 		return cachingC.findAll();
 	}
 
+	@Operation(
+            summary = "Buscar Cultivo por ID",
+            description = "Retorna um Cultivo específico pelo ID",
+            tags = "Retorno de informações do Cultivo"
+        )
 @GetMapping(value="/{id}")
 	public Cultivo retornarCultivoPorId(@PathVariable @Valid Integer id) {
 		
@@ -84,6 +113,11 @@ public class CultivoController {
 		}
 		
 	}
+	@Operation(
+            summary = "Criar novo Cultivo",
+            description = "Insere um novo Cultivo no banco e limpa cache",
+            tags = "Inserção de informações do Cultivo"
+        )
 @PostMapping(value="/novo")
 	public Cultivo inserirCultivo(@RequestBody @Valid Cultivo cultivo ) {
 		
@@ -92,7 +126,11 @@ public class CultivoController {
 		
 		return cultivo;
 	}
-
+	@Operation(
+            summary = "Remover Cultivo",
+            description = "Remove um Cultivo pelo ID e limpa cache",
+            tags = "Remoção de informações do Cultivo"
+        )
 @DeleteMapping(value="remover/{id}")
 	public Cultivo deletarCultivo(@PathVariable @Valid Integer id) {
 		
@@ -111,7 +149,11 @@ public class CultivoController {
 		}
 		
 	}
-
+	@Operation(
+            summary = "Atualizar Cultivo",
+            description = "Atualiza dados de um Cultivo existente",
+            tags = "Atualização dos dados do Cultivo"
+        )
 @PutMapping(value="atualizar/{id}")
 	public Cultivo atualizarCultivo(@PathVariable Integer id,@RequestBody @Valid Cultivo cultivo ) {
 		

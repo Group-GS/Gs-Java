@@ -24,6 +24,7 @@ import br.com.gs.projeto_agro.model.Alerta;
 import br.com.gs.projeto_agro.repository.AlertaRepository;
 import br.com.gs.projeto_agro.service.AlertaCachingService;
 import br.com.gs.projeto_agro.service.AlertaPaginacaoService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 
 @RestController
@@ -39,6 +40,11 @@ public class AlertaController {
 	@Autowired
 	private AlertaCachingService cachingA;
 
+	@Operation(
+            summary = "Listar Alerta paginados",
+            description = "Retorna Alerta em formato paginado com base em page e size",
+            tags = "Retorno de informações do Alerta"
+        )
 	@GetMapping("/paginados")
 	public ResponseEntity<Page<AlertaDTO>> paginar	(
 			@RequestParam(value = "page", defaultValue = "0") Integer page,
@@ -52,21 +58,39 @@ public class AlertaController {
 			return ResponseEntity.ok(paginados);
 				 
 				 }
+	
+	@Operation(
+            summary = "Buscar Alerta por substring",
+            description = "Busca Alerta filtrando por parte do nome ou outros campos via projection",
+            tags = "Retorno de informações do Alerta"
+        )
 @GetMapping("/substring")
 	  public List<Alerta> retornarAlertaPorSubstring(@RequestParam String substring) {
 	       return cachingA.findByTipo(substring);
 	   }  
-
+	@Operation(
+            summary = "Buscar Alerta por Status",
+            description = "Retorna lista de Alertas filtrados pelo Status",
+            tags = "Retorno de informações do Alerta"
+        )
 @GetMapping("/por_status")
 	  public List<Alerta> retornarAlertaPorStatus(@RequestParam String status) {
 	      return cachingA.findByStatus(status);
 	   }
-	
+@Operation(
+        summary = "Listar todos os Alertas (cache)",
+        description = "Retorna todos os Alertas utilizando cache para performance",
+        tags = "Retorno de informações do Alerta"
+    )
 @GetMapping(value="/todos")
 	public List<Alerta>retornarTodosAlertas(){
 		return cachingA.findAll();
 	}
-
+@Operation(
+        summary = "Buscar Alerta por ID",
+        description = "Retorna um Alerta específico pelo ID",
+        tags = "Retorno de informações do Alerta"
+    )
 @GetMapping(value="/{id}")
 	public Alerta retornarAlertaPorId(@PathVariable @Valid Integer id) {
 		
@@ -79,6 +103,11 @@ public class AlertaController {
 		}
 		
 	}
+@Operation(
+        summary = "Criar novo Alerta",
+        description = "Insere um novo Alerta no banco e limpa cache",
+        tags = "Inserção de informações do Alerta"
+    )
 @PostMapping(value="/novo")
 	public Alerta inserirAlerta(@RequestBody @Valid Alerta alerta ) {
 		
@@ -87,6 +116,11 @@ public class AlertaController {
 		
 		return alerta ;
 	}
+@Operation(
+        summary = "Remover Alerta",
+        description = "Remove um Alerta pelo ID e limpa cache",
+        tags = "Remoção de informações do Alerta"
+    )
 
 @DeleteMapping(value="remover/{id}")
 	public Alerta deletarAlerta(@PathVariable @Valid Integer id) {
@@ -106,7 +140,11 @@ public class AlertaController {
 		}
 		
 	}
-
+@Operation(
+        summary = "Atualizar Alerta",
+        description = "Atualiza dados de um Alerta existente",
+        tags = "Atualização dos dados do Alerta"
+    )
 @PutMapping(value="atualizar/{id}")
 	public Alerta atualizarAlerta(@PathVariable Integer id,@RequestBody @Valid Alerta alerta ) {
 		
