@@ -56,9 +56,9 @@ private List<Leitura> leituras;
 	}
 	
 	public void transferirSensor(Sensor sensor){
-		this.tipoSensor = sensor.getTipoSensor();
-		this.status= sensor.getStatus();
-		
+    	this.tipoSensor = sensor.getTipoSensor();
+    	this.status = sensor.getStatus();
+    	this.local = sensor.getLocal();
 	}
 
 	public Integer getId() {
@@ -85,7 +85,13 @@ private List<Leitura> leituras;
 		this.status = status;
 	}
 
-	
+	public Local getLocal() {
+    	return local;
+	}
+
+	public void setLocal(Local local) {
+    	this.local = local;
+	}
     
     
     
