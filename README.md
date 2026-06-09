@@ -224,5 +224,13 @@ Documentação interativa com Swagger
 
 Autenticação e autorização com JWT
 
+---
 
+## 👥 Integrantes do Grupo
+
+Aluno: Lucas Rafael Solimene / RM: 565194
+
+Aluno: Samyr Couto Oliveira / RM: 565562
+
+Aluno: Henrique Teixeira Cesar / RM: 563088
 
