@@ -145,13 +145,13 @@ spring.jpa.properties.hibernate.format_sql=true
 Documentação interativa disponível em:
 
 ```bash
-http://localhost:8080/swagger-ui.html
+http://localhost:8083/swagger-ui.html
 ```
 
 ou
 
 ```bash
-http://localhost:8080/swagger-ui/index.html
+http://localhost:8083/swagger-ui/index.html
 ```
 
 ---
