@@ -1,0 +1,1044 @@
+SET SERVEROUTPUT ON;
+SET VERIFY OFF;
+
+--Tabelas
+CREATE TABLE Bioma (
+    id_bioma   INTEGER NOT NULL,
+    nome       VARCHAR2(15) NOT NULL,
+    descricao  VARCHAR2(50) NOT NULL,
+
+    CONSTRAINT pk_bioma PRIMARY KEY (id_bioma)
+);
+
+CREATE TABLE Locais (
+    id_local   INTEGER NOT NULL,
+    nome       VARCHAR2(50) NOT NULL,
+    cidade     VARCHAR2(50) NOT NULL,
+    estado     CHAR(2) NOT NULL,
+    id_bioma   INTEGER NOT NULL,
+
+    CONSTRAINT pk_local PRIMARY KEY (id_local),
+    CONSTRAINT fk_local_bioma FOREIGN KEY (id_bioma) REFERENCES Bioma(id_bioma)
+
+);
+
+CREATE TABLE Sensor (
+    id_sensor     INTEGER NOT NULL,
+    tipo_sensor   VARCHAR2(20) NOT NULL,
+    status        VARCHAR2(10) NOT NULL,
+    id_local      INTEGER NOT NULL,
+
+    CONSTRAINT pk_sensor PRIMARY KEY (id_sensor),
+    CONSTRAINT fk_sensor_local FOREIGN KEY (id_local) REFERENCES Locais(id_local)
+        
+);
+
+CREATE TABLE Usuario (
+    id_usuario   INTEGER NOT NULL,
+    nome         VARCHAR2(25) NOT NULL,
+    email        VARCHAR2(50) NOT NULL,
+    senha        VARCHAR2(20) NOT NULL,
+    telefone     VARCHAR2(11) NOT NULL,
+
+    CONSTRAINT pk_usuario PRIMARY KEY (id_usuario)
+        
+);
+
+CREATE TABLE Usuario_Local(
+    id_usuario INTEGER NOT NULL,
+    id_local INTEGER NOT NULL,
+
+    CONSTRAINT pk_usuario_local PRIMARY KEY(id_usuario,id_local),
+    CONSTRAINT fk_usuario_local_usuario FOREIGN KEY(id_usuario) REFERENCES Usuario(id_usuario),
+    CONSTRAINT fk_usuario_local_local FOREIGN KEY(id_local) REFERENCES Locais(id_local)
+    
+);
+
+CREATE TABLE Leitura (
+    id_leitura   INTEGER NOT NULL,
+    valor        NUMBER(10,2) NOT NULL,
+    data_hora    DATE NOT NULL,
+    id_sensor    INTEGER NOT NULL,
+
+    CONSTRAINT pk_leitura PRIMARY KEY (id_leitura),
+    CONSTRAINT fk_leitura_sensor FOREIGN KEY (id_sensor) REFERENCES Sensor(id_sensor)
+        
+);
+
+
+CREATE TABLE Cultura (
+    id_cultura          INTEGER NOT NULL,
+    nome                VARCHAR2(25) NOT NULL,
+    temp_min_ideal      NUMBER(6,2) NOT NULL,
+    temp_max_ideal      NUMBER(6,2) NOT NULL,
+    umidade_min_ideal   NUMBER(6,2) NOT NULL,
+    umidade_max_ideal   NUMBER(6,2) NOT NULL,
+    pressao_min_ideal   NUMBER(6,2)NOT NULL,
+    pressao_max_ideal   NUMBER(6,2)NOT NULL,
+
+    CONSTRAINT pk_cultura PRIMARY KEY (id_cultura)
+        
+);
+
+
+CREATE TABLE Cultivo (
+    id_cultivo    INTEGER NOT NULL,
+    data_inicio   DATE NOT NULL,
+    data_fim      DATE NOT NULL,
+    status        VARCHAR2(10),
+    id_cultura    INTEGER NOT NULL,
+    id_local      INTEGER NOT NULL,
+
+    CONSTRAINT pk_cultivo PRIMARY KEY (id_cultivo),
+    CONSTRAINT fk_cultivo_cultura FOREIGN KEY (id_cultura) REFERENCES Cultura(id_cultura),
+    CONSTRAINT fk_cultivo_local FOREIGN KEY (id_local) REFERENCES Locais(id_local)
+
+);
+
+
+
+CREATE TABLE Alerta (
+    id_alerta    INTEGER NOT NULL,
+    tipo         VARCHAR2(10) NOT NULL,
+    descricao    VARCHAR2(50) NOT NULL,
+    data_alerta  DATE NOT NULL,
+    status       VARCHAR2(10) NOT NULL,
+    id_local     INTEGER NOT NULL,
+
+    CONSTRAINT pk_alerta PRIMARY KEY (id_alerta),
+    CONSTRAINT fk_alerta_local FOREIGN KEY (id_local) REFERENCES Locais(id_local)
+        
+);
+
+CREATE TABLE Log_erro (
+    id_log            INTEGER GENERATED ALWAYS AS IDENTITY,
+    nome_procedure    VARCHAR(50) NOT NULL,
+    usuario_sistema   VARCHAR(50) NOT NULL,
+    data_erro         DATE NOT NULL,
+    codigo_erro       INTEGER NOT NULL,
+    mensagem_erro     VARCHAR(200),
+    CONSTRAINT pk_log PRIMARY KEY(id_log)
+    
+);
+
+
+--PROCEDURES
+--Procedure Bioma
+CREATE OR REPLACE PROCEDURE inserir_bioma(
+    v_id_bioma INTEGER,
+    v_nome VARCHAR2,
+    v_descricao VARCHAR2
+
+)
+IS
+    
+    v_usuario VARCHAR2(50) := USER;
+    v_data_erro DATE := SYSDATE;
+    v_codigo_erro NUMBER;
+    v_mensagem_erro VARCHAR2(200);
+    
+
+BEGIN
+
+    INSERT INTO Bioma( id_bioma, nome, descricao) VALUES (v_id_bioma, v_nome, v_descricao);
+    DBMS_OUTPUT.PUT_LINE('Bioma inserido com sucesso');
+
+EXCEPTION    
+    
+    WHEN DUP_VAL_ON_INDEX THEN
+        
+        v_codigo_erro := SQLCODE;
+        v_mensagem_erro := 'Bioma já cadastrado';
+
+        INSERT INTO  Log_erro(nome_procedure, usuario_sistema, data_erro, codigo_erro, mensagem_erro)
+        VALUES('inserir_bioma', v_usuario,v_data_erro,v_codigo_erro,v_mensagem_erro);
+        
+        DBMS_OUTPUT.PUT_LINE('Erro: Bioma já existe');
+
+    WHEN OTHERS THEN
+        
+        v_codigo_erro := SQLCODE;
+        v_mensagem_erro := SUBSTR(SQLERRM,1,200);
+        
+        INSERT INTO  Log_erro(nome_procedure, usuario_sistema, data_erro, codigo_erro, mensagem_erro)
+        VALUES('inserir_bioma', v_usuario,v_data_erro,v_codigo_erro,v_mensagem_erro);
+       
+        DBMS_OUTPUT.PUT_LINE('Erro:'||v_mensagem_erro);
+        
+END;
+/
+
+--Procedure Local
+CREATE OR REPLACE PROCEDURE inserir_local(
+    v_id_local INTEGER,
+    v_nome VARCHAR2,
+    v_cidade VARCHAR2,
+    v_estado CHAR,
+    v_id_bioma INTEGER
+)
+IS
+    
+    v_usuario VARCHAR2(50) := USER;
+    v_data_erro DATE:= SYSDATE;
+    v_codigo_erro NUMBER;
+    v_mensagem_erro VARCHAR2(200);
+
+BEGIN
+
+    INSERT INTO Locais(id_local, nome, cidade, estado, id_bioma)VALUES(v_id_local, v_nome, v_cidade,v_estado, v_id_bioma);
+    DBMS_OUTPUT.PUT_LINE('Local inserido com sucesso');
+
+EXCEPTION
+
+    WHEN DUP_VAL_ON_INDEX THEN
+    
+        v_codigo_erro := SQLCODE;
+        v_mensagem_erro := 'Local já cadastrado';
+        
+        INSERT INTO Log_erro(nome_procedure, usuario_sistema,data_erro,codigo_erro,mensagem_erro)
+        VALUES('inserir_local', v_usuario, v_data_erro, v_codigo_erro, v_mensagem_erro);
+    
+        DBMS_OUTPUT.PUT_LINE('Erro: Local já existe');
+        
+        
+        
+    WHEN OTHERS THEN
+        
+        v_codigo_erro := SQLCODE;
+        v_mensagem_erro := SUBSTR(SQLERRM,1,200);
+        
+        INSERT INTO Log_erro(nome_procedure, usuario_sistema,data_erro,codigo_erro,mensagem_erro)
+        VALUES('inserir_local', v_usuario, v_data_erro, v_codigo_erro, v_mensagem_erro);
+        
+        DBMS_OUTPUT.PUT_LINE('Erro:'||v_mensagem_erro);
+END;
+/
+
+--Procedure Sensor
+
+CREATE OR REPLACE PROCEDURE inserir_sensor(
+    v_id_sensor INTEGER,
+    v_tipo_sensor VARCHAR2,
+    v_status VARCHAR2,
+    v_id_local INTEGER
+)
+IS
+    v_usuario VARCHAR2(50):= USER;
+    v_data_erro DATE := SYSDATE;
+    v_codigo_erro INTEGER;
+    v_mensagem_erro VARCHAR2(200);
+    
+BEGIN
+    
+    INSERT INTO Sensor(id_sensor, tipo_sensor,status,id_local) VALUES(v_id_sensor,v_tipo_sensor,v_status, v_id_local);
+    DBMS_OUTPUT.PUT_LINE('Sensor inserido com sucesso');
+       
+EXCEPTION
+
+    WHEN DUP_VAL_ON_INDEX THEN
+     
+        v_codigo_erro := SQLCODE;
+        v_mensagem_erro :='Sensor já cadastrado';
+        
+        INSERT INTO Log_erro(nome_procedure, usuario_sistema,data_erro,codigo_erro,mensagem_erro)
+        VALUES('inserir_sensor', v_usuario, v_data_erro, v_codigo_erro, v_mensagem_erro);
+      
+        DBMS_OUTPUT.PUT_LINE('Erro: Sensor já existe');    
+      
+    WHEN OTHERS THEN
+    
+        v_codigo_erro := SQLCODE;
+        v_mensagem_erro := SUBSTR(SQLERRM,1,200);
+        
+        INSERT INTO Log_erro(nome_procedure, usuario_sistema,data_erro,codigo_erro,mensagem_erro)
+        VALUES('inserir_sensor', v_usuario, v_data_erro, v_codigo_erro, v_mensagem_erro);
+    
+        DBMS_OUTPUT.PUT_LINE('Erro:'||v_mensagem_erro);
+
+END;  
+/
+
+--Procedure Usuario
+CREATE OR REPLACE PROCEDURE inserir_usuario(
+    v_id_usuario INTEGER,
+    v_nome VARCHAR2,
+    v_email VARCHAR2,
+    v_senha VARCHAR2,
+    v_telefone VARCHAR2
+)
+IS
+
+    v_usuario VARCHAR2(50):= USER;
+    v_data_erro DATE :=SYSDATE;
+    v_codigo_erro INTEGER;
+    v_mensagem_erro VARCHAR2(200);
+    
+BEGIN
+    
+    INSERT INTO Usuario(id_usuario, nome, email, senha, telefone) VALUES(v_id_usuario,v_nome,v_email,v_senha,v_telefone);
+    DBMS_OUTPUT.PUT_LINE('Úsuario inserido com sucesso');
+    
+EXCEPTION
+ 
+    WHEN DUP_VAL_ON_INDEX THEN
+        
+        v_codigo_erro :=SQLCODE;
+        v_mensagem_erro :='Úsuario já cadastrado';
+    
+        INSERT INTO Log_erro(nome_procedure, usuario_sistema,data_erro,codigo_erro,mensagem_erro)
+        VALUES('inserir_usuario', v_usuario, v_data_erro, v_codigo_erro, v_mensagem_erro);
+        
+        DBMS_OUTPUT.PUT_LINE('Erro: Úsuario já existe');
+        
+   WHEN OTHERS THEN
+            
+        v_codigo_erro := SQLCODE;
+        v_mensagem_erro := SUBSTR(SQLERRM,1,200);
+            
+        INSERT INTO Log_erro(nome_procedure, usuario_sistema,data_erro,codigo_erro,mensagem_erro)
+        VALUES('inserir_usuario', v_usuario, v_data_erro, v_codigo_erro, v_mensagem_erro);
+    
+        DBMS_OUTPUT.PUT_LINE('Erro:'||v_mensagem_erro);     
+
+END;
+/
+
+--procedure Usuario_local
+
+CREATE OR REPLACE PROCEDURE inserir_usuario_local(
+    v_id_usuario INTEGER,
+    v_id_local INTEGER
+)
+IS
+    
+    v_usuario VARCHAR2(50) := USER;
+    v_data_erro DATE := SYSDATE;
+    v_codigo_erro INTEGER;
+    v_mensagem_erro VARCHAR2(200);
+
+BEGIN
+
+    INSERT INTO Usuario_Local( id_usuario, id_local) VALUES (v_id_usuario, v_id_local);
+    DBMS_OUTPUT.PUT_LINE( 'Vínculo criado com sucesso');
+    
+     
+EXCEPTION
+    
+    WHEN DUP_VAL_ON_INDEX THEN
+        
+        v_codigo_erro :=SQLCODE;
+        v_mensagem_erro :='Úsuario_local já cadastrado';
+    
+        INSERT INTO Log_erro(nome_procedure, usuario_sistema,data_erro,codigo_erro,mensagem_erro)
+        VALUES('inserir_usuario_local', v_usuario, v_data_erro, v_codigo_erro, v_mensagem_erro);
+        
+        DBMS_OUTPUT.PUT_LINE('Erro: Úsuario_local já existe');
+
+    WHEN OTHERS THEN
+            
+        v_codigo_erro := SQLCODE;
+        v_mensagem_erro := SUBSTR(SQLERRM,1,200);
+            
+        INSERT INTO Log_erro(nome_procedure, usuario_sistema,data_erro,codigo_erro,mensagem_erro)
+        VALUES('inserir_usuario_local', v_usuario, v_data_erro, v_codigo_erro, v_mensagem_erro);
+    
+        DBMS_OUTPUT.PUT_LINE('Erro:'||v_mensagem_erro);     
+
+END;
+/
+
+
+--Procedure Leitura
+CREATE OR REPLACE PROCEDURE inserir_leitura(
+    v_id_leitura INTEGER,
+    v_valor NUMBER,
+    v_data_hora DATE,
+    v_id_sensor INTEGER
+
+)
+IS
+    v_usuario VARCHAR2(50):= USER;
+    v_data_erro DATE :=SYSDATE;
+    v_codigo_erro INTEGER;
+    v_mensagem_erro VARCHAR2(200);
+    
+BEGIN
+    INSERT INTO Leitura(id_leitura,valor,data_hora,id_sensor) VALUES (v_id_leitura,v_valor,v_data_hora,v_id_sensor);
+    DBMS_OUTPUT.PUT_LINE('Leitura inserida com sucesso');
+ 
+EXCEPTION
+        
+        WHEN DUP_VAL_ON_INDEX THEN
+        
+            v_codigo_erro :=SQLCODE;
+            v_mensagem_erro :='Leitura já cadastrada';
+    
+            INSERT INTO Log_erro(nome_procedure, usuario_sistema,data_erro,codigo_erro,mensagem_erro)
+            VALUES('inserir_leitura', v_usuario, v_data_erro, v_codigo_erro, v_mensagem_erro);
+        
+            DBMS_OUTPUT.PUT_LINE('Erro: Leitura já existe');
+        
+        WHEN OTHERS THEN
+            
+            v_codigo_erro := SQLCODE;
+            v_mensagem_erro := SUBSTR(SQLERRM,1,200);
+            
+            INSERT INTO Log_erro(nome_procedure, usuario_sistema,data_erro,codigo_erro,mensagem_erro)
+            VALUES('inserir_leitura', v_usuario, v_data_erro, v_codigo_erro, v_mensagem_erro);
+    
+            DBMS_OUTPUT.PUT_LINE('Erro:'||v_mensagem_erro);
+  
+END;
+/
+
+---Procedure Cultura
+CREATE OR REPLACE PROCEDURE inserir_cultura(
+    v_id_cultura INTEGER,
+    v_nome VARCHAR2,
+    v_temp_min_ideal NUMBER,
+    v_temp_max_ideal NUMBER,
+    v_umidade_min_ideal NUMBER,
+    v_umidade_max_ideal NUMBER,
+    v_pressao_min_ideal NUMBER,
+    v_pressao_max_ideal NUMBER
+
+)
+IS
+    
+    v_usuario VARCHAR2(50):= USER;
+    v_data_erro DATE :=SYSDATE;
+    v_codigo_erro INTEGER;
+    v_mensagem_erro VARCHAR2(200);
+    
+BEGIN
+    
+    INSERT INTO CULTURA(id_cultura,nome,temp_min_ideal,temp_max_ideal,umidade_min_ideal,umidade_max_ideal, pressao_min_ideal, pressao_max_ideal) VALUES(v_id_cultura,v_nome,v_temp_min_ideal,v_temp_max_ideal,v_umidade_min_ideal,v_umidade_max_ideal,v_pressao_min_ideal,v_pressao_max_ideal);
+    DBMS_OUTPUT.PUT_LINE('Cultura inserida com sucesso');
+    
+EXCEPTION
+    
+    WHEN DUP_VAL_ON_INDEX THEN
+        
+            v_codigo_erro :=SQLCODE;
+            v_mensagem_erro :='Cultura já cadastrada';
+    
+            INSERT INTO Log_erro(nome_procedure, usuario_sistema,data_erro,codigo_erro,mensagem_erro)
+            VALUES('inserir_cultura', v_usuario, v_data_erro, v_codigo_erro, v_mensagem_erro);
+        
+            DBMS_OUTPUT.PUT_LINE('Erro: Cultura já existe');
+        
+   WHEN OTHERS THEN
+   
+           v_codigo_erro :=SQLCODE;
+           v_mensagem_erro := SUBSTR(SQLERRM,1,200);
+           
+           INSERT INTO Log_erro(nome_procedure, usuario_sistema,data_erro,codigo_erro,mensagem_erro)
+           VALUES('inserir_cultura', v_usuario, v_data_erro, v_codigo_erro, v_mensagem_erro);
+    
+           DBMS_OUTPUT.PUT_LINE('Erro:'||v_mensagem_erro);
+        
+END;           
+/
+
+--Procedure Cultivo
+CREATE OR REPLACE PROCEDURE inserir_cultivo(
+    v_id_cultivo INTEGER,
+    v_data_inicio DATE,
+    v_data_fim DATE,
+    v_status VARCHAR2,
+    v_id_cultura INTEGER,
+    v_id_local INTEGER
+    
+)
+IS
+
+    v_usuario VARCHAR2(50):=USER;
+    v_data_erro DATE := SYSDATE;
+    v_codigo_erro INTEGER;
+    v_mensagem_erro VARCHAR2(200);
+    
+BEGIN
+    INSERT INTO Cultivo (id_cultivo,data_inicio,data_fim,status,id_cultura,id_local) VALUES (v_id_cultivo,v_data_inicio,v_data_fim,v_status,v_id_cultura,v_id_local);
+    DBMS_OUTPUT.PUT_LINE('Cultivo inserido com sucesso');
+
+EXCEPTION
+    
+    WHEN DUP_VAL_ON_INDEX THEN
+        
+            v_codigo_erro :=SQLCODE;
+            v_mensagem_erro :='Cultivo já cadastrado';
+    
+            INSERT INTO Log_erro(nome_procedure, usuario_sistema,data_erro,codigo_erro,mensagem_erro)
+            VALUES('inserir_cultivo', v_usuario, v_data_erro, v_codigo_erro, v_mensagem_erro);
+        
+            DBMS_OUTPUT.PUT_LINE('Erro: Cultivo já existe');
+        
+   WHEN OTHERS THEN
+   
+           v_codigo_erro :=SQLCODE;
+           v_mensagem_erro := SUBSTR(SQLERRM,1,200);
+           
+           INSERT INTO Log_erro(nome_procedure, usuario_sistema,data_erro,codigo_erro,mensagem_erro)
+           VALUES('inserir_cultivo', v_usuario, v_data_erro, v_codigo_erro, v_mensagem_erro);
+    
+           DBMS_OUTPUT.PUT_LINE('Erro:'||v_mensagem_erro);
+        
+END;
+/
+
+--Procedure Alterta
+CREATE OR REPLACE PROCEDURE inserir_alerta(
+    v_id_alerta INTEGER,
+    v_tipo VARCHAR2,
+    v_descricao VARCHAR2,
+    v_data_alerta DATE,
+    v_status VARCHAR2,
+    v_id_local INTEGER
+    
+)
+IS
+    
+    v_usuario VARCHAR2(50):= USER;
+    v_data_erro DATE:= SYSDATE;
+    v_codigo_erro INTEGER;
+    v_mensagem_erro VARCHAR2(200);
+    
+BEGIN 
+    INSERT INTO Alerta(id_alerta,tipo,descricao,data_alerta,status,id_local) VALUES (v_id_alerta,v_tipo,v_descricao,v_data_alerta,v_status,v_id_local);
+    DBMS_OUTPUT.PUT_LINE('Alerta inserido com sucesso');
+    
+EXCEPTION
+    
+    WHEN DUP_VAL_ON_INDEX THEN
+        
+            v_codigo_erro :=SQLCODE;
+            v_mensagem_erro :='Alerta já cadastrado';
+    
+            INSERT INTO Log_erro(nome_procedure, usuario_sistema,data_erro,codigo_erro,mensagem_erro)
+            VALUES('inserir_alerta', v_usuario, v_data_erro, v_codigo_erro, v_mensagem_erro);
+        
+            DBMS_OUTPUT.PUT_LINE('Erro: Alerta já existe');
+        
+   WHEN OTHERS THEN
+   
+           v_codigo_erro :=SQLCODE;
+           v_mensagem_erro := SUBSTR(SQLERRM,1,200);
+           
+           INSERT INTO Log_erro(nome_procedure, usuario_sistema,data_erro,codigo_erro,mensagem_erro)
+           VALUES('inserir_alerta', v_usuario, v_data_erro, v_codigo_erro, v_mensagem_erro);
+    
+           DBMS_OUTPUT.PUT_LINE('Erro:'||v_mensagem_erro);
+        
+END; 
+/
+
+--RELATORIOS
+--Sensores Por Local
+DECLARE
+BEGIN
+    FOR registro IN (SELECT l.nome AS local_nome,
+                     COUNT(s.id_sensor) AS total_sensores FROM Locais l LEFT JOIN Sensor s ON l.id_local = s.id_local
+                     GROUP BY l.nome
+                     ORDER BY total_sensores DESC    )
+    LOOP
+        DBMS_OUTPUT.PUT_LINE( 'Local: ' || registro.local_nome || ' | Sensores: ' || registro.total_sensores );
+    END LOOP;
+END;
+/
+--Leituras por sensor
+DECLARE
+BEGIN
+    FOR registro IN ( SELECT s.id_sensor,s.tipo_sensor, 
+                      COUNT(l.id_leitura) AS total_leituras FROM Sensor s LEFT JOIN Leitura l ON s.id_sensor = l.id_sensor
+                      GROUP BY s.id_sensor, s.tipo_sensor
+                      ORDER BY total_leituras DESC )
+    LOOP
+        DBMS_OUTPUT.PUT_LINE( 'Sensor: ' || registro.id_sensor ||' | Tipo: ' || registro.tipo_sensor ||' | Leituras: ' || registro.total_leituras);
+    END LOOP;
+END;
+/
+--Cultivos por local
+DECLARE
+BEGIN
+    FOR registro IN (SELECT l.nome AS local_nome, 
+                     COUNT(c.id_cultivo) AS total_cultivos FROM Locais l LEFT JOIN Cultivo c ON l.id_local = c.id_local
+                     GROUP BY l.nome
+                     ORDER BY total_cultivos DESC)
+    LOOP
+        DBMS_OUTPUT.PUT_LINE('Local: ' || registro.local_nome ||' | Cultivos: ' || registro.total_cultivos);
+    END LOOP;
+END;
+/
+--Alertas por local
+DECLARE
+BEGIN
+    FOR registro IN (SELECT l.nome AS local_nome,
+                     COUNT(a.id_alerta) AS total_alertas FROM Locais l LEFT JOIN Alerta a ON l.id_local = a.id_local
+                     GROUP BY l.nome
+                     ORDER BY total_alertas DESC )
+    LOOP
+        DBMS_OUTPUT.PUT_LINE('Local: ' || registro.local_nome ||' | Alertas: ' || registro.total_alertas);
+    END LOOP;
+END;
+/
+--Culturas em cultivo
+DECLARE
+BEGIN
+    FOR registro IN (SELECT c.nome AS cultura,
+                     COUNT(ct.id_cultivo) AS total  FROM Cultura c LEFT JOIN Cultivo ct ON c.id_cultura = ct.id_cultura
+                     GROUP BY c.nome
+                     ORDER BY total DESC )
+    LOOP
+        DBMS_OUTPUT.PUT_LINE('Cultura: ' || registro.cultura ||' | Cultivos: ' || registro.total );
+    END LOOP;
+END;
+/
+
+--PACKAGE/FUNCTION total_leituras_sensor
+
+CREATE OR REPLACE PACKAGE pkg_monitoramento AS
+
+    FUNCTION total_leituras_sensor(p_id_sensor INTEGER) RETURN INTEGER;
+
+    PROCEDURE listar_sensores_local(p_id_local INTEGER);
+        
+    PROCEDURE listar_alertas_local( p_id_local INTEGER);
+  
+END pkg_monitoramento;
+/
+
+
+CREATE OR REPLACE PACKAGE BODY pkg_monitoramento AS
+    
+    FUNCTION total_leituras_sensor( p_id_sensor INTEGER)
+    RETURN INTEGER
+    
+    IS
+    
+    v_total INTEGER;
+
+    BEGIN
+    
+    SELECT COUNT(*)INTO v_total FROM Leitura WHERE id_sensor = p_id_sensor;
+    RETURN v_total;
+    
+    END total_leituras_sensor;
+    
+    PROCEDURE listar_sensores_local(p_id_local INTEGER)
+    
+    IS
+    
+    BEGIN
+        
+        FOR registro IN (SELECT id_sensor,tipo_sensor,status FROM Sensor WHERE id_local = p_id_local)
+        
+        LOOP
+            
+            DBMS_OUTPUT.PUT_LINE( 'Sensor:'||registro.id_sensor||'| Tipo: '||registro.tipo_sensor||'| Status: '||registro.status); 
+            
+        END LOOP;    
+    END listar_sensores_local;
+    
+    PROCEDURE listar_alertas_local(p_id_local INTEGER)
+    
+    IS
+    
+    BEGIN
+        
+        FOR registro IN (SELECT tipo,descricao,status,data_alerta FROM Alerta WHERE id_local = p_id_local ORDER BY data_alerta DESC)
+        
+        LOOP
+            
+            DBMS_OUTPUT.PUT_LINE( 'Tipo:'||registro.tipo||'| Status: '||registro.status||'| Data: '||TO_CHAR(registro.data_alerta,'DD/MM/YYYY'));
+      END LOOP;               
+    END listar_alertas_local;
+END pkg_monitoramento;    
+    
+
+--TRIGGERS
+--Trigger que ativa antes da ação para tratar data
+CREATE OR REPLACE TRIGGER trigger_validar_datas_cultivo BEFORE INSERT OR UPDATE ON Cultivo FOR EACH ROW
+
+BEGIN
+
+    IF :NEW.data_fim < :NEW.data_inicio THEN
+    
+        RAISE_APPLICATION_ERROR( -20001,'Data fim não pode ser menor que data inicio');
+    
+    END IF;
+END;
+/
+
+--Trigger que valida os status em ativo inativo finalizado no cultivo
+CREATE OR REPLACE TRIGGER trigger_validar_status_cultivo BEFORE INSERT OR UPDATE ON Cultivo FOR EACH ROW
+
+BEGIN
+
+    IF UPPER(:NEW.status) NOT IN ('ATIVO', 'INATIVO','FINALIZADO') THEN
+    
+    RAISE_APPLICATION_ERROR( -20002,'Status invalido.Utilize ATIVO, INATIVO ou FINALIZADO');
+    
+    END IF;
+END;
+/
+  
+--Trigger que valida os status em ativo inativo finalizado no sensor       
+CREATE OR REPLACE TRIGGER trigger_validar_status_sensor BEFORE INSERT OR UPDATE ON Sensor FOR EACH ROW
+
+BEGIN
+    
+    IF UPPER(:NEW.status) NOT IN ('ATIVO', 'INATIVO','MANUTENCAO') THEN
+    
+    RAISE_APPLICATION_ERROR( -20003,'Status invalido.Utilize ATIVO, INATIVO ou MANUTENCAO');
+    
+    END IF;
+END;
+/
+
+--Trigger que valida os status em ativo inativo finalizado no alerta
+CREATE OR REPLACE TRIGGER trigger_validar_status_alerta BEFORE INSERT OR UPDATE ON Alerta FOR EACH ROW
+
+BEGIN
+
+    
+    
+    IF UPPER(:NEW.status) NOT IN ('ATIVO', 'INATIVO','FINALIZADO') THEN
+    
+    RAISE_APPLICATION_ERROR( -20004,'Status invalido.Utilize ATIVO, INATIVO ou FINALIZADO');
+    
+    END IF;
+END;
+/
+
+
+
+--CURSORES
+--Sensores por local
+DECLARE
+    
+    CURSOR c_sensores_local is SELECT l.nome AS local_nome, 
+    COUNT(s.id_sensor) AS total_sensores 
+    FROM Locais l LEFT JOIN Sensor s ON l.id_local = s.id_local
+    GROUP BY l.nome ORDER BY total_sensores DESC;
+
+BEGIN
+    
+    FOR registro IN c_sensores_local LOOP
+    
+        DBMS_OUTPUT.PUT_LINE('Local: '||registro.local_nome||' | Sensores: '||registro.total_sensores);
+    
+    END LOOP;
+
+END;
+/
+
+--mostra quantas leituras cada sensor registra
+DECLARE
+
+    CURSOR c_leituras_sensor is SELECT id_sensor,tipo_sensor FROM Sensor ORDER BY id_sensor;
+
+BEGIN
+        FOR registro IN c_leituras_sensor LOOP
+        
+            DBMS_OUTPUT.PUT_LINE('Sensor: '||registro.id_sensor||'| tipo: '|| registro.tipo_sensor|| '| Leituras: '||pkg_monitoramento.total_leituras_sensor(registro.id_sensor));
+        
+        END LOOP;
+END;
+/
+
+--mostra quais culturas estão sendo cultivadas em cada local
+DECLARE
+    
+    CURSOR c_cultivos_local IS SELECT 
+        l.nome AS local_nome,
+        c.nome AS cultura_nome,
+        ct.status,
+        ct.data_inicio,
+        ct.data_fim
+    FROM Cultivo ct JOIN Cultura c ON ct.id_cultura = c.id_cultura JOIN Locais l ON ct.id_local = l.id_local ORDER BY l.nome;
+    
+BEGIN
+
+    FOR registro IN c_cultivos_local LOOP
+    
+        IF registro.status = 'ATIVO' THEN
+            
+         DBMS_OUTPUT.PUT_LINE('Local: '|| registro.local_nome|| ' | Cultura: '||registro.cultura_nome||' | Início: '||TO_CHAR(registro.data_inicio,'DD/MM/YYYY')|| ' | Status: Cultivo em andamento');
+        
+        ELSIF registro.status = 'FINALIZADO' THEN
+         
+         DBMS_OUTPUT.PUT_LINE('Local: '|| registro.local_nome|| ' | Cultura: '||registro.cultura_nome||' | Início: '||TO_CHAR(registro.data_inicio,'DD/MM/YYYY')|| ' | Status: Cultivo encerrado');
+        
+        ELSE
+        
+         DBMS_OUTPUT.PUT_LINE('Local: '||registro.local_nome|| ' | Cultura: '|| registro.cultura_nome|| ' | Status:Inativo');
+         
+         END IF;
+    END LOOP;
+END;  
+/
+--Alertas por local
+--Mostra os alertas registrados em cada local
+
+DECLARE
+    
+    CURSOR c_alertas_local is SELECT
+        l.nome as local_nome,
+        a.tipo,
+        a.descricao,
+        a.status,
+        a.data_alerta
+    FROM Alerta a JOIN Locais l on a.id_local = l.id_local ORDER BY a.data_alerta DESC;
+
+BEGIN
+
+    FOR registro IN c_alertas_local LOOP
+        
+        DBMS_OUTPUT.PUT_LINE('Local: '||registro.local_nome||'| Tipo: '||registro.tipo|| ' |Status: '||registro.status||' |Data: '||TO_CHAR(registro.data_alerta,'DD/MM/YYYY'));
+    
+    END LOOP;
+END;
+/
+
+--Quantidades de alertas por local
+
+DECLARE
+
+    CURSOR c_total_alertas IS SELECT 
+        l.nome as local_nome,
+        COUNT(a.id_alerta) AS total_alertas FROM Locais l LEFT JOIN Alerta a ON l.id_local = a.id_local
+        GROUP BY l.nome
+        ORDER BY total_alertas DESC;
+
+BEGIN
+    
+    FOR registro IN c_total_alertas LOOP
+    
+        DBMS_OUTPUT.PUT_LINE('Local: '||registro.local_nome||'| Total de Alertas: '||registro.total_alertas);
+        
+   END LOOP;
+END;
+/
+
+--INSERTS DOS DADOS
+--BIOMA
+BEGIN
+    inserir_bioma(1,'Amazonia','Floresta tropical umida');
+    inserir_bioma(2,'Cerrado','Savana brasileira');
+    inserir_bioma(3,'Caatinga','Bioma semi-arido');
+    inserir_bioma(4,'Mata Atlantica','Floresta costeira');
+    inserir_bioma(5,'Pampa','Campos do sul');
+    inserir_bioma(6,'Pantanal','Maior area alagavel');
+END;
+/
+--LOCAL
+BEGIN
+    inserir_local(1,'Fazenda Verde','Manaus','AM',1);
+    inserir_local(2,'Fazenda Sol Nascente','Goiania','GO',2);
+    inserir_local(3,'Sitio Sertao Forte','Juazeiro','BA',3);
+    inserir_local(4,'Fazenda Atlantica','Campinas','SP',4);
+    inserir_local(5,'Estancia Sul','Pelotas','RS',5);
+    inserir_local(6,'Fazenda Pantaneira','Corumba','MS',6);
+END;
+/
+--USUARIO
+BEGIN
+    inserir_usuario(1,'Lucas','lucas@email.com','123456','11999999999');
+    inserir_usuario(2,'Samyr','samyr@email.com','123456','11988888888');
+    inserir_usuario(3,'Henrique','Henrique@email.com','123456','11977777777');
+    inserir_usuario(4,'Guilherme','Guilherme@email.com','123456','11966666666');
+    inserir_usuario(5,'Felipe','felipe@email.com','123456','11955555555');
+    inserir_usuario(6,'Gustavo','gustavo@email.com','123456','11944444444');
+END;
+/
+--USUARIO_LOCAL
+BEGIN
+    inserir_usuario_local(1,1);
+    inserir_usuario_local(2,2);
+    inserir_usuario_local(3,3);
+    inserir_usuario_local(4,4);
+    inserir_usuario_local(5,5);
+    inserir_usuario_local(6,6);
+END;
+/
+--CULTURA
+BEGIN
+    inserir_cultura(1,'Soja',20,30,50,80,890,1016);
+    inserir_cultura(2,'Cana-de-acucar',18,35,55,85,910,1016);
+    inserir_cultura(3,'Arroz Sequeiro',20,35,60,80,890,1014);
+    inserir_cultura(4,'Cafe',18,24,60,85,860,950);
+    inserir_cultura(5,'Milho',15,30,50,75,880,1016);
+    inserir_cultura(6,'Mandioca',18,35,60,90,890,1016);
+    inserir_cultura(7,'Feijao',15,29,50,80,880,1016);
+    inserir_cultura(8,'Arroz Irrigado',20,35,70,90,980,1016);
+END;
+/
+--SENSORES
+BEGIN
+    inserir_sensor(1,'Temperatura','ATIVO',1);
+    inserir_sensor(2,'Umidade','ATIVO',1);
+    inserir_sensor(3,'Temperatura','ATIVO',2);
+    inserir_sensor(4,'Pressao','ATIVO',2);
+    inserir_sensor(5,'Temperatura','ATIVO',3);
+    inserir_sensor(6,'Umidade','MANUTENCAO',3);
+    inserir_sensor(7,'Temperatura','ATIVO',4);
+    inserir_sensor(8,'Pressao','ATIVO',5);
+    inserir_sensor(9,'Umidade','ATIVO',6);
+END;
+/
+--Inserir Leituras
+BEGIN
+    inserir_leitura(1,25.5,SYSDATE,1);
+    inserir_leitura(2,26.1,SYSDATE,1);
+    inserir_leitura(3,70,SYSDATE,2);
+    inserir_leitura(4,29,SYSDATE,3);
+    inserir_leitura(5,30,SYSDATE,3);
+    inserir_leitura(6,980,SYSDATE,4);
+    inserir_leitura(7,32,SYSDATE,5);
+    inserir_leitura(8,60,SYSDATE,6);
+    inserir_leitura(9,23,SYSDATE,7);
+    inserir_leitura(10,1002,SYSDATE,8);
+    inserir_leitura(11,75,SYSDATE,9);
+END;
+/
+--CULTIVOS
+BEGIN
+    inserir_cultivo(1,TO_DATE('01/01/2026','DD/MM/YYYY'),TO_DATE('01/07/2026','DD/MM/YYYY'),'ATIVO',1,2);
+    inserir_cultivo(2,TO_DATE('10/01/2026','DD/MM/YYYY'),TO_DATE('10/06/2026','DD/MM/YYYY'),'FINALIZADO',4,4);
+    inserir_cultivo(3,TO_DATE('15/02/2026','DD/MM/YYYY'),TO_DATE('15/08/2026','DD/MM/YYYY'),'ATIVO',5,5);
+    inserir_cultivo(4,TO_DATE('01/03/2026','DD/MM/YYYY'),TO_DATE('01/09/2026','DD/MM/YYYY'),'INATIVO',6,1);
+END;
+/
+--ALERTAS
+BEGIN
+    inserir_alerta(1,'ALTO','Temperatura acima do ideal',SYSDATE,'ATIVO',2);
+    inserir_alerta(2,'MEDIO','Umidade abaixo do ideal',SYSDATE,'ATIVO',3);
+    inserir_alerta(3,'BAIXO','Sensor em manutencao',SYSDATE,'FINALIZADO',3);
+    inserir_alerta(4,'ALTO','Pressao fora da faixa',SYSDATE,'ATIVO',5);
+END;
+/
+--Teste-Package
+DECLARE
+    v_total INTEGER;
+BEGIN
+    v_total := pkg_monitoramento.total_leituras_sensor(1);
+
+    DBMS_OUTPUT.PUT_LINE(
+        'Total de leituras: ' || v_total
+    );
+END;
+/
+--Procedures do Package
+BEGIN
+    pkg_monitoramento.listar_sensores_local(1);
+END;
+/
+
+BEGIN
+    pkg_monitoramento.listar_alertas_local(3);
+END;
+/
+--total sensores
+DECLARE
+    v_total INTEGER;
+BEGIN
+
+    SELECT COUNT(*)
+    INTO v_total
+    FROM Sensor;
+
+    DBMS_OUTPUT.PUT_LINE( 'Total de sensores: ' || v_total);
+
+END;
+/
+--total alertas 
+DECLARE
+    v_total INTEGER;
+BEGIN
+
+    SELECT COUNT(*)
+    INTO v_total
+    FROM Alerta;
+
+    DBMS_OUTPUT.PUT_LINE( 'Total de alertas: ' || v_total);        
+
+END;
+/
+--Buscar Nome de Um Local
+DECLARE
+    v_nome VARCHAR2(50);
+
+BEGIN
+
+    SELECT nome INTO v_nome FROM Locais WHERE id_local = 1;
+    DBMS_OUTPUT.PUT_LINE( 'Local encontrado: ' || v_nome);
+    
+EXCEPTION
+
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE( 'Local não encontrado');
+            
+END;
+/
+--quantidade de cultivos ativos
+DECLARE
+    v_total INTEGER;
+
+BEGIN
+
+    SELECT COUNT(*) INTO v_total FROM Cultivo WHERE status = 'ATIVO';
+    DBMS_OUTPUT.PUT_LINE( 'Cultivos ativos: ' || v_total);
+
+END;
+/
+--media das leituras
+DECLARE
+    v_media NUMBER(10,2);
+
+BEGIN
+
+    SELECT AVG(valor) INTO v_media FROM Leitura;
+    DBMS_OUTPUT.PUT_LINE( 'Média das leituras: ' || v_media);
+    
+
+END;
+/
+--Teste Trigger data inválida
+BEGIN
+    inserir_cultivo(99,TO_DATE('10/08/2026','DD/MM/YYYY'),TO_DATE('01/08/2026','DD/MM/YYYY'),'ATIVO',1,2);
+END;
+/
+--Teste Trigger status inválido cultivo
+BEGIN
+    inserir_cultivo(100,SYSDATE,SYSDATE + 30,'PLANTANDO',1,2);
+END;
+/
+--Teste Trigger status inválido sensor
+BEGIN
+    inserir_sensor(99,'Temperatura','QUEBRADO',1);
+END;
+/
+--Teste Trigger status inválido alerta
+BEGIN
+    inserir_alerta(99,'ALTO','Teste',SYSDATE,'PENDENTE',1);
+END;
+/
+
+--Teste de Logs ERRO
+--PK duplicada
+BEGIN
+    inserir_bioma(1,'Amazonia','Duplicado');
+END;
+/
+--FK inexistente
+BEGIN
+    inserir_local(99,'Local Teste','Cidade','SP',999);
+END;
+/
+--Sensor com local inexistente
+BEGIN
+    inserir_sensor(100,'Temperatura','ATIVO',999);
+END;
+/
+--Select log_erro
+SELECT * FROM Log_erro ORDER BY data_erro DESC;
